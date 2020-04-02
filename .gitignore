@@ -1,0 +1,7 @@
+# python
+__pycache__/
+.pytest_cache/
+venv/
+
+# data
+//data/
