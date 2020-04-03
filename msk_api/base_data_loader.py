@@ -10,7 +10,12 @@ class BaseDataLoader:
         self.data = []
         self.is_finish = False
 
-    def parse_page(self, r, header_name) -> bool:
+    def load_page(self, url, params, header_name) -> bool:
+        r = requests.get(url, params=params)
+        if r.status_code != 200:
+            logging.error("%s: failed load page: %s, status code = %d, reason: %s", self.class_name, r.url, r.status_code, r.reason)
+            return False
+
         lines = r.text.splitlines()
 
         if lines[0] != header_name:
@@ -38,3 +43,5 @@ class BaseDataLoader:
         with open(save_path, "w") as f:
             f.write(self.header + "\n")
             f.writelines("%s\n" % line for line in self.data)
+
+        return True

@@ -3,37 +3,25 @@ import logging
 import requests
 from msk_api.base_data_loader import BaseDataLoader
 
-# https://iss.moex.com/iss/engines
-# engine = "stock"
-# https://iss.moex.com/iss/engines/stock/markets
-# market = "shares",
 # https://iss.moex.com/iss/securitygroups
-# group = "stock_shares",
+# group = "stock_shares"
 
 class SecuritiesListLoader(BaseDataLoader):
     def __init__(self):
         super(SecuritiesListLoader, self).__init__("SecuritiesListLoader")
 
-    def load_page(self, start, count) -> bool:
+    def load_data(self, save_path) -> bool:
         # doc: http://iss.moex.com/iss/reference/5
         # example: http://iss.moex.com/iss/securities.json?lang=ru&start=0&limit=100
-        params = {
-            "lang": "ru",
-            "start": start,
-            "limit": count,
-        }
-        r = requests.get("http://iss.moex.com/iss/securities.csv", params=params)
-        if r.status_code != 200:
-            logging.error("SecuritiesListLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
-            return False
-
-        return self.parse_page(r, "securities")
-
-    def load_data(self, save_path) -> bool:
         start = 0
         count = 100
         while not self.is_finish:
-            if not self.load_page(start, count):
+            params = {
+                "lang": "ru",
+                "start": start,
+                "limit": count,
+            }
+            if not self.load_page("http://iss.moex.com/iss/securities.csv", params, "securities"):
                 return False
             start += count
 
@@ -62,12 +50,8 @@ class DividendsLoader(BaseDataLoader):
     def load_data(self, security_name, save_path) -> bool:
         # example: http://iss.moex.com/iss/securities/ROSN/dividends.json
         params = {}
-        r = requests.get("http://iss.moex.com/iss/securities/ROSN/dividends.csv".format(), params=params)
-        if r.status_code != 200:
-            logging.error("DividendsLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
-            return False
-
-        if not self.parse_page(r, "dividends"):
+        url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(security_name)
+        if not self.load_page(url, params, "dividends"):
             return False
 
         return self.save_data(save_path)
@@ -87,6 +71,29 @@ class DividendsLoader(BaseDataLoader):
 
         return True
 
+
+class TradeHistory(BaseDataLoader):
+    def __init__(self):
+        super(TradeHistory, self).__init__("TradeHistory")
+
+    def load_data(self, engine, market, board, security_name, save_path) -> bool:
+        # doc: http://iss.moex.com/iss/reference/65
+        # example: http://iss.moex.com/iss/history/engines/stock/markets/shares/boards/TQBR/securities/TATN?from=2020-01-01&lang=ru&start=0&limit=100
+        start = 0
+        count = 100
+        url = "http://iss.moex.com/iss/history/engines/{}/markets/{}/boards/{}/securities/{}.csv".format(engine, market, board, security_name)
+        while not self.is_finish:
+            params = {
+                "from": "2010-01-01",
+                "lang": "ru",
+                "start": start,
+                "limit": count,
+            }
+            if not self.load_page(url, params, "history"):
+                return False
+            start += count
+
+        return self.save_data(save_path)
 
 class Loader:
     def __init__(self, root_dir):
@@ -114,7 +121,15 @@ class Loader:
         return True
 
     def load(self, securities_list) -> bool:
-        self.load_meta()
+        # https://iss.moex.com/iss/engines
+        engine = "stock"
+        # https://iss.moex.com/iss/engines/stock/markets
+        market = "shares"
+        # https://iss.moex.com/iss/engines/stock/markets/shares/boards
+        board = "TQBR"
+
+        if not self.load_meta():
+            return False
 
         securities_data_file = os.path.join(self.data_dir, "securities_msk_data.csv")
         if not os.path.exists(securities_data_file):
@@ -131,6 +146,12 @@ class Loader:
             if not os.path.exists(security_dividends_file):
                 loader = DividendsLoader()
                 if not loader.load_data(security_name, security_dividends_file):
+                    return False
+
+            security_trade_history_file = os.path.join(security_dir, "trade_history_msk_data.csv")
+            if not os.path.exists(security_trade_history_file):
+                loader = TradeHistory()
+                if not loader.load_data(engine, market, board, security_name, security_trade_history_file):
                     return False
 
         return True
