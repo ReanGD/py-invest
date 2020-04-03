@@ -2,6 +2,13 @@ import os
 import logging
 import requests
 
+# https://iss.moex.com/iss/engines
+# engine = "stock"
+# https://iss.moex.com/iss/engines/stock/markets
+# market = "shares",
+# https://iss.moex.com/iss/securitygroups
+# group = "stock_shares",
+
 class SecuritiesLoader:
     def __init__(self):
         self.header = ""
@@ -33,28 +40,21 @@ class SecuritiesLoader:
         return True
 
     def load_page(self, start, count) -> bool:
-        # https://iss.moex.com/iss/securities.json?engine=stock&market=shares&group_by=group&group_by_filter=stock_shares&lang=ru&start=0&limit=100
+        # doc: http://iss.moex.com/iss/reference/5
+        # example: http://iss.moex.com/iss/securities.json?lang=ru&start=0&limit=100
         params = {
-            # https://iss.moex.com/iss/engines
-            # "engine": "stock",
-            # https://iss.moex.com/iss/engines/stock/markets
-            # "market": "shares",
-            # "group_by": "group",
-            # https://iss.moex.com/iss/securitygroups
-            # "group_by_filter": "stock_shares",
             "lang": "ru",
             "start": start,
             "limit": count,
         }
-        # https://iss.moex.com/iss/reference/5
-        r = requests.get("https://iss.moex.com/iss/securities.csv", params=params)
+        r = requests.get("http://iss.moex.com/iss/securities.csv", params=params)
         if r.status_code != 200:
             logging.error("SecuritiesLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
             return False
 
         return self.parse_page(r, start, count)
 
-    def load(self, save_path):
+    def load_data(self, save_path) -> bool:
         self.header = ""
         self.data = []
         self.is_finish = False
@@ -71,10 +71,43 @@ class SecuritiesLoader:
 
         return True
 
+    def load_meta(self, save_path) -> bool:
+        # example: http://iss.moex.com/iss/securities/column.json?iss.only=boards
+        params = {
+            "iss.only": "boards",
+        }
+        r = requests.get("http://iss.moex.com/iss/securities/column.json", params=params)
+        if r.status_code != 200:
+            logging.error("SecuritiesLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
+            return False
 
-def load_securities(save_path):
-    loader = SecuritiesLoader()
-    if not loader.load(save_path):
-        print("fail load")
-    else:
-        print("load success")
+        with open(save_path, "w") as f:
+            f.write(r.text)
+
+        return True
+
+
+class Loader:
+    def __init__(self, root_dir):
+        self.data_dir = os.path.join(root_dir, "data")
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
+
+        self.meta_dir = os.path.join(self.data_dir, "meta")
+        if not os.path.exists(self.meta_dir):
+            os.mkdir(self.meta_dir)
+
+    def load(self) -> bool:
+        securities_data_file = os.path.join(self.data_dir, "securities_msk_data.csv")
+        if not os.path.exists(securities_data_file):
+            loader = SecuritiesLoader()
+            if not loader.load_data(securities_data_file):
+                return False
+
+        securities_meta_file = os.path.join(self.meta_dir, "securities_msk_column.json")
+        if not os.path.exists(securities_meta_file):
+            loader = SecuritiesLoader()
+            if not loader.load_meta(securities_meta_file):
+                return False
+
+        return True
