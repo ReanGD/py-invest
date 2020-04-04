@@ -10,7 +10,7 @@ class BaseDataLoader:
         self.data = []
         self.is_finish = False
 
-    def load_page(self, url, params, header_name) -> bool:
+    def _load_data_page(self, url, params, header_name) -> bool:
         r = requests.get(url, params=params)
         if r.status_code != 200:
             logging.error("%s: failed load page: %s, status code = %d, reason: %s", self.class_name, r.url, r.status_code, r.reason)
@@ -43,5 +43,16 @@ class BaseDataLoader:
         with open(save_path, "w") as f:
             f.write(self.header + "\n")
             f.writelines("%s\n" % line for line in self.data)
+
+        return True
+
+    def _load_meta(self, url, params, save_path) -> bool:
+        r = requests.get(url, params=params)
+        if r.status_code != 200:
+            logging.error("%s: failed load page: %s, status code = %d, reason: %s", self.class_name, r.url, r.status_code, r.reason)
+            return False
+
+        with open(save_path, "w") as f:
+            f.write(r.text)
 
         return True

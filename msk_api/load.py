@@ -21,7 +21,7 @@ class SecuritiesListLoader(BaseDataLoader):
                 "start": start,
                 "limit": count,
             }
-            if not self.load_page("http://iss.moex.com/iss/securities.csv", params, "securities"):
+            if not self._load_data_page("http://iss.moex.com/iss/securities.csv", params, "securities"):
                 return False
             start += count
 
@@ -32,15 +32,7 @@ class SecuritiesListLoader(BaseDataLoader):
         params = {
             "iss.only": "boards",
         }
-        r = requests.get("http://iss.moex.com/iss/securities/column.json", params=params)
-        if r.status_code != 200:
-            logging.error("SecuritiesListLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
-            return False
-
-        with open(save_path, "w") as f:
-            f.write(r.text)
-
-        return True
+        return self._load_meta("http://iss.moex.com/iss/securities/column.json", params, save_path)
 
 
 class DividendsLoader(BaseDataLoader):
@@ -51,7 +43,7 @@ class DividendsLoader(BaseDataLoader):
         # example: http://iss.moex.com/iss/securities/ROSN/dividends.json
         params = {}
         url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(security_name)
-        if not self.load_page(url, params, "dividends"):
+        if not self._load_data_page(url, params, "dividends"):
             return False
 
         return self.save_data(save_path)
@@ -61,15 +53,7 @@ class DividendsLoader(BaseDataLoader):
         params = {
             "iss.data": "off",
         }
-        r = requests.get("http://iss.moex.com/iss/securities/TATN/dividends.json", params=params)
-        if r.status_code != 200:
-            logging.error("DividendsLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
-            return False
-
-        with open(save_path, "w") as f:
-            f.write(r.text)
-
-        return True
+        return self._load_meta("http://iss.moex.com/iss/securities/TATN/dividends.json", params, save_path)
 
 
 class TradeHistory(BaseDataLoader):
@@ -89,11 +73,21 @@ class TradeHistory(BaseDataLoader):
                 "start": start,
                 "limit": count,
             }
-            if not self.load_page(url, params, "history"):
+            if not self._load_data_page(url, params, "history"):
                 return False
             start += count
 
         return self.save_data(save_path)
+
+    def load_meta(self, engine, market, board, save_path) -> bool:
+        # doc: https://iss.moex.com/iss/reference/101
+        # example: iss.moex.com/iss/history/engines/stock/markets/shares/boards/TQBR/securities/columns.json?iss.only=boards
+        params = {
+            "iss.only": "boards",
+        }
+        url = "http://iss.moex.com/iss/history/engines/{}/markets/{}/boards/{}/securities/columns.json".format(engine, market, board)
+        return self._load_meta(url, params, save_path)
+
 
 class Loader:
     def __init__(self, root_dir):
@@ -105,7 +99,7 @@ class Loader:
         if not os.path.exists(self.meta_dir):
             os.mkdir(self.meta_dir)
 
-    def load_meta(self):
+    def load_meta(self, engine, market, board):
         securities_meta_file = os.path.join(self.meta_dir, "securities_msk_column.json")
         if not os.path.exists(securities_meta_file):
             loader = SecuritiesListLoader()
@@ -118,6 +112,12 @@ class Loader:
             if not loader.load_meta(dividends_meta_file):
                 return False
 
+        trade_history_meta_file = os.path.join(self.meta_dir, "trade_history_msk_column.json")
+        if not os.path.exists(trade_history_meta_file):
+            loader = TradeHistory()
+            if not loader.load_meta(engine, market, board, trade_history_meta_file):
+                return False
+
         return True
 
     def load(self, securities_list) -> bool:
@@ -128,7 +128,7 @@ class Loader:
         # https://iss.moex.com/iss/engines/stock/markets/shares/boards
         board = "TQBR"
 
-        if not self.load_meta():
+        if not self.load_meta(engine, market, board):
             return False
 
         securities_data_file = os.path.join(self.data_dir, "securities_msk_data.csv")
