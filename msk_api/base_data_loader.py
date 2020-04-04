@@ -33,3 +33,8 @@ class BaseDataLoader:
                 self.data.append(line)
 
         return True
+
+    def save_data(self, save_path) -> bool:
+        with open(save_path, "w") as f:
+            f.write(self.header + "\n")
+            f.writelines("%s\n" % line for line in self.data)

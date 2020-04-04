@@ -37,11 +37,7 @@ class SecuritiesListLoader(BaseDataLoader):
                 return False
             start += count
 
-        with open(save_path, "w") as f:
-            f.write(self.header + "\n")
-            f.writelines("%s\n" % line for line in self.data)
-
-        return True
+        return self.save_data(save_path)
 
     def load_meta(self, save_path) -> bool:
         # example: http://iss.moex.com/iss/securities/column.json?iss.only=boards
@@ -74,9 +70,20 @@ class DividendsLoader(BaseDataLoader):
         if not self.parse_page(r, "dividends"):
             return False
 
+        return self.save_data(save_path)
+
+    def load_meta(self, save_path) -> bool:
+        # example: http://iss.moex.com/iss/securities/TATN/dividends.json?iss.data=off
+        params = {
+            "iss.data": "off",
+        }
+        r = requests.get("http://iss.moex.com/iss/securities/TATN/dividends.json", params=params)
+        if r.status_code != 200:
+            logging.error("DividendsLoader: failed load page: %s, status code = %d, reason: %s", r.url, r.status_code, r.reason)
+            return False
+
         with open(save_path, "w") as f:
-            f.write(self.header + "\n")
-            f.writelines("%s\n" % line for line in self.data)
+            f.write(r.text)
 
         return True
 
@@ -91,17 +98,28 @@ class Loader:
         if not os.path.exists(self.meta_dir):
             os.mkdir(self.meta_dir)
 
-    def load(self, securities_list) -> bool:
-        securities_data_file = os.path.join(self.data_dir, "securities_msk_data.csv")
-        if not os.path.exists(securities_data_file):
-            loader = SecuritiesListLoader()
-            if not loader.load_data(securities_data_file):
-                return False
-
+    def load_meta(self):
         securities_meta_file = os.path.join(self.meta_dir, "securities_msk_column.json")
         if not os.path.exists(securities_meta_file):
             loader = SecuritiesListLoader()
             if not loader.load_meta(securities_meta_file):
+                return False
+
+        dividends_meta_file = os.path.join(self.meta_dir, "dividends_msk_column.json")
+        if not os.path.exists(dividends_meta_file):
+            loader = DividendsLoader()
+            if not loader.load_meta(dividends_meta_file):
+                return False
+
+        return True
+
+    def load(self, securities_list) -> bool:
+        self.load_meta()
+
+        securities_data_file = os.path.join(self.data_dir, "securities_msk_data.csv")
+        if not os.path.exists(securities_data_file):
+            loader = SecuritiesListLoader()
+            if not loader.load_data(securities_data_file):
                 return False
 
         for security_name in securities_list:
