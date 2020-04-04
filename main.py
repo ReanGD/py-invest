@@ -7,7 +7,7 @@ def root():
 
 def run():
     loader = Loader(root())
-    if loader.load():
+    if loader.load(["ROSN", "TATN", "TATNP"]):
         print("Finished success")
     else:
         print("Finished with error")
