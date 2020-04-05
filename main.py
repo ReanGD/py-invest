@@ -7,10 +7,19 @@ def root():
 
 def run():
     loader = Loader(root())
-    if loader.load(["ROSN", "TATN", "TATNP"]):
-        print("Finished success")
-    else:
-        print("Finished with error")
+    if not loader.load_meta():
+        print("Meta load finished with error")
+        return
+
+    if not loader.load_base():
+        print("Base load finished with error")
+        return
+
+    if not loader.load_data(["ROSN", "TATN", "TATNP"]):
+        print("Data load finished with error")
+        return
+
+    print("Finished success")
 
 
 if __name__ == "__main__":

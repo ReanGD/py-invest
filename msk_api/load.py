@@ -35,6 +35,22 @@ class SecuritiesListLoader(BaseDataLoader):
         return self._load_meta("http://iss.moex.com/iss/securities/column.json", params, save_path)
 
 
+class MarketdataLoader(BaseDataLoader):
+    def __init__(self):
+        super(MarketdataLoader, self).__init__("MarketdataLoader")
+
+    def load_data(self, save_path) -> bool:
+        # doc: https://iss.moex.com/iss/reference/32
+        # example: http://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities?iss.only=marketdata
+        params = {
+            "iss.only": "marketdata",
+        }
+        if not self._load_data_page("http://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.csv", params, "marketdata"):
+            return False
+
+        return self.save_data(save_path)
+
+
 class DividendsLoader(BaseDataLoader):
     def __init__(self):
         super(DividendsLoader, self).__init__("DividendsLoader")
@@ -91,15 +107,22 @@ class TradeHistory(BaseDataLoader):
 
 class Loader:
     def __init__(self, root_dir):
+        # https://iss.moex.com/iss/engines
+        self.engine = "stock"
+        # https://iss.moex.com/iss/engines/stock/markets
+        self.market = "shares"
+        # https://iss.moex.com/iss/engines/stock/markets/shares/boards
+        self.board = "TQBR"
+
         self.data_dir = os.path.join(root_dir, "data")
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
 
+    def load_meta(self):
         self.meta_dir = os.path.join(self.data_dir, "meta")
         if not os.path.exists(self.meta_dir):
             os.mkdir(self.meta_dir)
 
-    def load_meta(self, engine, market, board):
         securities_meta_file = os.path.join(self.meta_dir, "securities_msk_column.json")
         if not os.path.exists(securities_meta_file):
             loader = SecuritiesListLoader()
@@ -115,28 +138,27 @@ class Loader:
         trade_history_meta_file = os.path.join(self.meta_dir, "trade_history_msk_column.json")
         if not os.path.exists(trade_history_meta_file):
             loader = TradeHistory()
-            if not loader.load_meta(engine, market, board, trade_history_meta_file):
+            if not loader.load_meta(self.engine, self.market, self.board, trade_history_meta_file):
                 return False
 
         return True
 
-    def load(self, securities_list) -> bool:
-        # https://iss.moex.com/iss/engines
-        engine = "stock"
-        # https://iss.moex.com/iss/engines/stock/markets
-        market = "shares"
-        # https://iss.moex.com/iss/engines/stock/markets/shares/boards
-        board = "TQBR"
-
-        if not self.load_meta(engine, market, board):
-            return False
-
+    def load_base(self) -> bool:
         securities_data_file = os.path.join(self.data_dir, "securities_msk_data.csv")
         if not os.path.exists(securities_data_file):
             loader = SecuritiesListLoader()
             if not loader.load_data(securities_data_file):
                 return False
 
+        marketdata_data_file = os.path.join(self.data_dir, "marketdata_msk_data.csv")
+        if not os.path.exists(marketdata_data_file):
+            loader = MarketdataLoader()
+            if not loader.load_data(marketdata_data_file):
+                return False
+
+        return True
+
+    def load_data(self, securities_list) -> bool:
         for security_name in securities_list:
             security_dir = os.path.join(self.data_dir, security_name)
             if not os.path.exists(security_dir):
@@ -151,7 +173,7 @@ class Loader:
             security_trade_history_file = os.path.join(security_dir, "trade_history_msk_data.csv")
             if not os.path.exists(security_trade_history_file):
                 loader = TradeHistory()
-                if not loader.load_data(engine, market, board, security_name, security_trade_history_file):
+                if not loader.load_data(self.engine, self.market, self.board, security_name, security_trade_history_file):
                     return False
 
         return True
