@@ -127,12 +127,12 @@ class Loader:
             return True
 
         file_path = self.get_data_file_path("dividends", secid)
-        divs = pd.read_csv(file_path, sep=";", parse_dates=['registryclosedate'], infer_datetime_format=True)
+        divs = pd.read_csv(file_path, sep=";", parse_dates=["registryclosedate"], infer_datetime_format=True)
         divs = divs.sort_values(by="registryclosedate", ascending=True)
 
         file_path = self.get_data_file_path("trade_history", secid)
         hist = pd.read_csv(file_path, sep=";", parse_dates=["TRADEDATE"], infer_datetime_format=True)
-        hist["t2date"] = hist["TRADEDATE"].shift(-2, fill_value=pd.Timestamp(2099, 1, 1, 12))
+        hist["t2date"] = hist["TRADEDATE"].shift(-2, fill_value=pd.Timestamp(2099, 1, 1))
         hist = hist.sort_values(by="TRADEDATE", ascending=True)
 
         column_names = ["secid", "TRADEDATE", "registryclosedate", "value", "LEGALCLOSEPRICE", "interest_income", "currencyid"]

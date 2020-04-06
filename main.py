@@ -22,7 +22,7 @@ def run():
         logging.error("Base load finished with error")
         return
 
-    top = pd.read_csv(loader.get_base_file_path("marketdata"), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(30)["SECID"]
+    top = pd.read_csv(loader.get_base_file_path("marketdata"), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(50)["SECID"]
     if not loader.load_data([name for name in top]):
         logging.error("Data load finished with error")
         return
