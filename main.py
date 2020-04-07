@@ -22,7 +22,10 @@ def run():
         logging.error("Base load finished with error")
         return
 
-    top = pd.read_csv(fstruct.data_file_path(MARKETDATA), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(5)["SECID"]
+    file_path = fstruct.data_file_path(MARKETDATA)
+    if file_path is None:
+        return False
+    top = pd.read_csv(file_path, sep=";").sort_values("VALTODAY_RUR", ascending = False).head(5)["SECID"]
     if not loader.load_data([name for name in top]):
         logging.error("Data load finished with error")
         return

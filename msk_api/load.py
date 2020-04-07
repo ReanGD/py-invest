@@ -23,8 +23,7 @@ class Loader:
 
     def _call_meta_loader(self, loader, name : str) -> bool:
         full_path = self.fstruct.meta_file_path(name)
-        if full_path == "":
-            logging.error("Loader: failed name %s for meta_load", name)
+        if full_path is None:
             return False
 
         if not os.path.exists(full_path):
@@ -51,8 +50,7 @@ class Loader:
 
     def _call_data_loader(self, loader, name : str, secid : str = None) -> bool:
         full_path = self.fstruct.data_file_path(name, secid)
-        if full_path == "":
-            logging.error("Loader: failed name %s for base_load or data_load", name)
+        if full_path is None:
             return False
 
         if not os.path.exists(full_path):
@@ -73,18 +71,21 @@ class Loader:
 
     def _data_preprocess(self, secid : str) -> bool:
         file_path_out = self.fstruct.data_file_path(DIVIDENDS_PROCESSED, secid)
-        if file_path_out == "":
-            logging.error("Loader: failed name %s for data process", DIVIDENDS_PROCESSED)
+        if file_path_out is None:
             return False
 
         if os.path.exists(file_path_out):
             return True
 
         file_path = self.fstruct.data_file_path(DIVIDENDS, secid)
+        if file_path is None:
+            return False
         divs = pd.read_csv(file_path, sep=";", parse_dates=["registryclosedate"], infer_datetime_format=True)
         divs = divs.sort_values(by="registryclosedate", ascending=True)
 
         file_path = self.fstruct.data_file_path(TRADE_HISTORY, secid)
+        if file_path is None:
+            return False
         hist = pd.read_csv(file_path, sep=";", parse_dates=["TRADEDATE"], infer_datetime_format=True)
         hist["t2date"] = hist["TRADEDATE"].shift(-2, fill_value=pd.Timestamp(2099, 1, 1))
         hist = hist.sort_values(by="TRADEDATE", ascending=True)
@@ -102,7 +103,7 @@ class Loader:
 
     def load_data(self, securities_list) -> bool:
         for secid in securities_list:
-            self.fstruct.make_secid_dir(secid)
+            self.fstruct.make_sec_dir(secid)
 
             if not self._call_data_loader(DividendsLoader, DIVIDENDS, secid):
                 return False
