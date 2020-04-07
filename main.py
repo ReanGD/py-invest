@@ -8,7 +8,7 @@ def root():
     return os.path.dirname(os.path.abspath(__file__))
 
 def run():
-    logging.basicConfig(level=logging.DEBUG, format='%(name)s:[%(levelname)s]: %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(name)s:[%(levelname)s]: %(message)s')
 
     engine = "stock"
     market = "shares"
@@ -22,7 +22,7 @@ def run():
         logging.error("Base load finished with error")
         return
 
-    top = pd.read_csv(loader.get_base_file_path("marketdata"), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(10)["SECID"]
+    top = pd.read_csv(loader.get_base_file_path("marketdata"), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(30)["SECID"]
     if not loader.load_data([name for name in top]):
         logging.error("Data load finished with error")
         return

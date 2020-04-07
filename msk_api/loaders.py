@@ -2,11 +2,11 @@ from msk_api.base_data_loader import BaseDataLoader
 
 
 class LoaderParams:
-    def __init__(self, engine, market, board, security_name):
+    def __init__(self, engine, market, board, secid):
         self.engine = engine
         self.market = market
         self.board = board
-        self.security_name = security_name
+        self.secid = secid
 
 
 class SecuritiesListLoader(BaseDataLoader):
@@ -75,7 +75,7 @@ class DividendsLoader(BaseDataLoader):
     def load_data(self, save_path) -> bool:
         # example: http://iss.moex.com/iss/securities/ROSN/dividends.json
         url_params = {}
-        url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(self.params.security_name)
+        url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(self.params.secid)
         if not self._load_data_page(url, url_params, "dividends"):
             return False
 
@@ -100,7 +100,7 @@ class TradeHistory(BaseDataLoader):
         start = 0
         count = 100
         url = "http://iss.moex.com/iss/history/engines/{}/markets/{}/boards/{}/securities/{}.csv"
-        url = url.format(self.params.engine, self.params.market, self.params.board, self.params.security_name)
+        url = url.format(self.params.engine, self.params.market, self.params.board, self.params.secid)
         while not self.is_finish:
             url_params = {
                 "from": "2010-01-01",
@@ -116,9 +116,9 @@ class TradeHistory(BaseDataLoader):
 
     def load_meta(self, save_path) -> bool:
         # doc: https://iss.moex.com/iss/reference/101
-        # example: iss.moex.com/iss/history/engines/stock/markets/shares/boards/TQBR/securities/columns.json?iss.only=boards
+        # example: http://iss.moex.com/iss/history/engines/stock/markets/shares/boards/TQBR/securities/columns.json?iss.meta=off
         url_params = {
-            "iss.only": "boards",
+            "iss.meta": "off",
         }
         url = "http://iss.moex.com/iss/history/engines/{}/markets/{}/boards/{}/securities/columns.json"
         url = url.format(self.params.engine, self.params.market, self.params.board)
