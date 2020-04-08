@@ -1,15 +1,18 @@
 from msk_api.base_data_loader import BaseDataLoader
+from storage import SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA
 
 
 class LoaderParams:
-    def __init__(self, engine, market, board, secid):
+    def __init__(self, engine, market, board, sec_id):
         self.engine = engine
         self.market = market
         self.board = board
-        self.secid = secid
+        self.sec_id = sec_id
 
 
 class SecuritiesListLoader(BaseDataLoader):
+    name_id = SECURITIES
+
     def __init__(self, params):
         super(SecuritiesListLoader, self).__init__("SecuritiesListLoader")
         self.params = params
@@ -40,6 +43,8 @@ class SecuritiesListLoader(BaseDataLoader):
 
 
 class MarketdataLoader(BaseDataLoader):
+    name_id = MARKETDATA
+
     def __init__(self, params):
         super(MarketdataLoader, self).__init__("MarketdataLoader")
         self.params = params
@@ -66,6 +71,8 @@ class MarketdataLoader(BaseDataLoader):
 
 
 class DividendsLoader(BaseDataLoader):
+    name_id = DIVIDENDS
+
     def __init__(self, params):
         super(DividendsLoader, self).__init__("DividendsLoader")
         self.params = params
@@ -73,7 +80,7 @@ class DividendsLoader(BaseDataLoader):
     def load_data(self, save_path):
         # example: http://iss.moex.com/iss/securities/ROSN/dividends.json
         url_params = {}
-        url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(self.params.secid)
+        url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(self.params.sec_id)
         self._load_data_page(url, url_params, "dividends")
         self._save_data(save_path)
 
@@ -86,6 +93,8 @@ class DividendsLoader(BaseDataLoader):
 
 
 class TradeHistory(BaseDataLoader):
+    name_id = TRADE_HISTORY
+
     def __init__(self, params):
         super(TradeHistory, self).__init__("TradeHistory")
         self.params = params
@@ -96,7 +105,7 @@ class TradeHistory(BaseDataLoader):
         start = 0
         count = 100
         url = "http://iss.moex.com/iss/history/engines/{}/markets/{}/boards/{}/securities/{}.csv"
-        url = url.format(self.params.engine, self.params.market, self.params.board, self.params.secid)
+        url = url.format(self.params.engine, self.params.market, self.params.board, self.params.sec_id)
         while True:
             url_params = {
                 "from": "2010-01-01",

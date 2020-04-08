@@ -1,7 +1,7 @@
 import os
 import logging
 import pandas as pd
-from storage import FStruct, SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
+from storage import FStruct, DIVIDENDS, TRADE_HISTORY, DIVIDENDS_PROCESSED
 from msk_api.loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader, DividendsLoader, TradeHistory
 
 # https://iss.moex.com/iss/engines
@@ -21,60 +21,60 @@ class Loader:
         self.board = board
         self.fstruct = fstruct
 
-    def _call_meta_loader(self, loader, name : str):
-        full_path = self.fstruct.meta_file_path(name)
+    def _call_meta_loader(self, loader):
+        full_path = self.fstruct.meta_file_path(loader.name_id)
         if not os.path.exists(full_path):
             loader_params = LoaderParams(self.engine, self.market, self.board, "")
             loader_obj = loader(loader_params)
             loader_obj.load_meta(full_path)
 
     def load_meta(self):
-        self._call_meta_loader(SecuritiesListLoader, SECURITIES)
-        self._call_meta_loader(DividendsLoader, DIVIDENDS)
-        self._call_meta_loader(TradeHistory, TRADE_HISTORY)
-        self._call_meta_loader(MarketdataLoader, MARKETDATA)
+        self._call_meta_loader(SecuritiesListLoader)
+        self._call_meta_loader(DividendsLoader)
+        self._call_meta_loader(TradeHistory)
+        self._call_meta_loader(MarketdataLoader)
         logging.info("Finish loading meta")
 
-    def _call_data_loader(self, loader, name : str, secid : str = None):
-        full_path = self.fstruct.data_file_path(name, secid)
+    def _call_data_loader(self, loader, sec_id : str = None):
+        full_path = self.fstruct.data_file_path(loader.name_id, sec_id)
         if not os.path.exists(full_path):
-            loader_params = LoaderParams(self.engine, self.market, self.board, secid)
+            loader_params = LoaderParams(self.engine, self.market, self.board, sec_id)
             loader_obj = loader(loader_params)
             loader_obj.load_data(full_path)
 
     def load_base(self):
-        self._call_data_loader(SecuritiesListLoader, SECURITIES)
-        self._call_data_loader(MarketdataLoader, MARKETDATA)
+        self._call_data_loader(SecuritiesListLoader)
+        self._call_data_loader(MarketdataLoader)
         logging.info("Finish loading base")
 
-    def _data_preprocess(self, secid : str):
-        file_path_out = self.fstruct.data_file_path(DIVIDENDS_PROCESSED, secid)
+    def _data_preprocess(self, sec_id : str):
+        file_path_out = self.fstruct.data_file_path(DIVIDENDS_PROCESSED, sec_id)
         if os.path.exists(file_path_out):
             return
 
-        file_path = self.fstruct.data_file_path(DIVIDENDS, secid)
+        file_path = self.fstruct.data_file_path(DIVIDENDS, sec_id)
         divs = pd.read_csv(file_path, sep=";", parse_dates=["registryclosedate"], infer_datetime_format=True)
         divs = divs.sort_values(by="registryclosedate", ascending=True)
 
-        file_path = self.fstruct.data_file_path(TRADE_HISTORY, secid)
+        file_path = self.fstruct.data_file_path(TRADE_HISTORY, sec_id)
         hist = pd.read_csv(file_path, sep=";", parse_dates=["TRADEDATE"], infer_datetime_format=True)
         hist["t2date"] = hist["TRADEDATE"].shift(-2, fill_value=pd.Timestamp(2099, 1, 1))
         hist = hist.sort_values(by="TRADEDATE", ascending=True)
 
-        column_names = ["secid", "TRADEDATE", "registryclosedate", "value", "LEGALCLOSEPRICE", "interest_income", "currencyid"]
+        column_names = ["sec_id", "TRADEDATE", "registryclosedate", "value", "LEGALCLOSEPRICE", "interest_income", "currencyid"]
         if divs.empty:
             divs_full = pd.DataFrame(columns = column_names)
         else:
             divs_full = pd.merge_asof(divs, hist, left_on="registryclosedate", right_on="t2date")
-            divs_full["interest_income"] = divs_full["value"]*100.0/divs_full["LEGALCLOSEPRICE"]
+            divs_full["interest_income"] = divs_full["value"] * 100.0 / divs_full["LEGALCLOSEPRICE"]
         divs_full = divs_full[column_names].rename(columns={"TRADEDATE": "t2date", "LEGALCLOSEPRICE": "close_price"})
         divs_full.to_csv(file_path_out, sep=";", encoding="utf-8")
 
     def load_data(self, securities_list):
-        for secid in securities_list:
-            self.fstruct.make_sec_dir(secid)
-            self._call_data_loader(DividendsLoader, DIVIDENDS, secid)
-            self._call_data_loader(TradeHistory, TRADE_HISTORY, secid)
-            self._data_preprocess(secid)
-            logging.info("Finish loading security: %s", secid)
+        for sec_id in securities_list:
+            self.fstruct.make_sec_dir(sec_id)
+            self._call_data_loader(DividendsLoader, sec_id)
+            self._call_data_loader(TradeHistory, sec_id)
+            self._data_preprocess(sec_id)
+            logging.info("Finish loading security: %s", sec_id)
         logging.info("Finish loading securities")
