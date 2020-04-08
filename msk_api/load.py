@@ -1,7 +1,7 @@
 import os
 import logging
 import pandas as pd
-from storage import FStruct, DIVIDENDS, TRADE_HISTORY, DIVIDENDS_PROCESSED
+from storage import FStruct, FStorage, DIVIDENDS, TRADE_HISTORY, DIVIDENDS_PROCESSED
 from msk_api.loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader, DividendsLoader, TradeHistory
 
 # https://iss.moex.com/iss/engines
@@ -20,6 +20,8 @@ class Loader:
         self.market = market
         self.board = board
         self.fstruct = fstruct
+        self.fstorage = FStorage(fstruct.get_root_dir())
+        self.fstruct.make_base_dir()
 
     def _call_meta_loader(self, loader):
         full_path = self.fstruct.meta_file_path(loader.name_id)
@@ -52,16 +54,11 @@ class Loader:
         if os.path.exists(file_path_out):
             return
 
-        file_path = self.fstruct.data_file_path(DIVIDENDS, sec_id)
-        divs = pd.read_csv(file_path, sep=";", parse_dates=["registryclosedate"], infer_datetime_format=True)
-        divs = divs.sort_values(by="registryclosedate", ascending=True)
-
-        file_path = self.fstruct.data_file_path(TRADE_HISTORY, sec_id)
-        hist = pd.read_csv(file_path, sep=";", parse_dates=["TRADEDATE"], infer_datetime_format=True)
+        divs = self.fstorage.open_data(DIVIDENDS, sec_id).sort_values(by="registryclosedate", ascending=True)
+        hist = self.fstorage.open_data(TRADE_HISTORY, sec_id).sort_values(by="TRADEDATE", ascending=True)
         hist["t2date"] = hist["TRADEDATE"].shift(-2, fill_value=pd.Timestamp(2099, 1, 1))
-        hist = hist.sort_values(by="TRADEDATE", ascending=True)
 
-        column_names = ["sec_id", "TRADEDATE", "registryclosedate", "value", "LEGALCLOSEPRICE", "interest_income", "currencyid"]
+        column_names = ["secid", "TRADEDATE", "registryclosedate", "value", "LEGALCLOSEPRICE", "interest_income", "currencyid"]
         if divs.empty:
             divs_full = pd.DataFrame(columns = column_names)
         else:

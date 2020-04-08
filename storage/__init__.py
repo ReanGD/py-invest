@@ -5,6 +5,7 @@ MARKETDATA = "marketdata"
 DIVIDENDS_PROCESSED = "dividends_processed"
 
 from storage.fstruct import FStruct
+from storage.fstorage import FStorage
 
 __all__ = [
     "SECURITIES",
@@ -13,4 +14,5 @@ __all__ = [
     "MARKETDATA",
     "DIVIDENDS_PROCESSED",
     "FStruct",
+    "FStorage",
 ]
