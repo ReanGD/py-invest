@@ -1,6 +1,7 @@
 import os
 import logging
 import pandas as pd
+from storage import FStruct, SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
 from msk_api.loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader, DividendsLoader, TradeHistory
 
 # https://iss.moex.com/iss/engines
@@ -14,63 +15,18 @@ from msk_api.loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader
 
 
 class Loader:
-    def __init__(self, engine, market, board, root_dir):
+    def __init__(self, engine : str, market : str, board : str, fstruct : FStruct):
         self.engine = engine
         self.market = market
         self.board = board
+        self.fstruct = fstruct
 
-        self.data_dir = os.path.join(root_dir, "data")
-        if not os.path.exists(self.data_dir):
-            os.mkdir(self.data_dir)
-
-        self.meta_dir = os.path.join(self.data_dir, "meta")
-        if not os.path.exists(self.meta_dir):
-            os.mkdir(self.meta_dir)
-
-    def get_meta_file_path(self, name) -> str:
-        file_name = ""
-        if name == "securities":
-            file_name = "securities_msk_column.json"
-        elif name == "dividends":
-            file_name = "dividends_msk_column.json"
-        elif name == "trade_history":
-            file_name = "trade_history_msk_column.json"
-        elif name == "marketdata":
-            file_name = "marketdata_msk_column.json"
-        else:
-            return ""
-
-        return os.path.join(self.meta_dir, file_name)
-
-    def get_base_file_path(self, name) -> str:
-        file_name = ""
-        if name == "securities":
-            file_name = "securities_msk_data.csv"
-        elif name == "marketdata":
-            file_name = "marketdata_msk_data.csv"
-        else:
-            return ""
-
-        return os.path.join(self.data_dir, file_name)
-
-    def get_data_file_path(self, name, secid) -> str:
-        file_name = ""
-        if name == "dividends":
-            file_name = "dividends_msk_data.csv"
-        elif name == "dividends_processed":
-            file_name = "dividends_msk_processed_data.csv"
-        elif name == "trade_history":
-            file_name = "trade_history_msk_data.csv"
-        else:
-            return ""
-
-        return os.path.join(self.data_dir, secid, file_name)
-
-    def _call_meta_loader(self, loader, name) -> bool:
-        full_path = self.get_meta_file_path(name)
+    def _call_meta_loader(self, loader, name : str) -> bool:
+        full_path = self.fstruct.meta_file_path(name)
         if full_path == "":
             logging.error("Loader: failed name %s for meta_load", name)
             return False
+
         if not os.path.exists(full_path):
             loader_params = LoaderParams(self.engine, self.market, self.board, "")
             loader_obj = loader(loader_params)
@@ -79,29 +35,26 @@ class Loader:
         return True
 
     def load_meta(self) -> bool:
-        if not self._call_meta_loader(SecuritiesListLoader, "securities"):
+        if not self._call_meta_loader(SecuritiesListLoader, SECURITIES):
             return False
 
-        if not self._call_meta_loader(DividendsLoader, "dividends"):
+        if not self._call_meta_loader(DividendsLoader, DIVIDENDS):
             return False
 
-        if not self._call_meta_loader(TradeHistory, "trade_history"):
+        if not self._call_meta_loader(TradeHistory, TRADE_HISTORY):
             return False
 
-        if not self._call_meta_loader(MarketdataLoader, "marketdata"):
+        if not self._call_meta_loader(MarketdataLoader, MARKETDATA):
             return False
 
         return True
 
-    def _call_data_loader(self, loader, name, secid) -> bool:
-        if secid != "":
-            full_path = self.get_data_file_path(name, secid)
-        else:
-            full_path = self.get_base_file_path(name)
-
+    def _call_data_loader(self, loader, name : str, secid : str = None) -> bool:
+        full_path = self.fstruct.data_file_path(name, secid)
         if full_path == "":
             logging.error("Loader: failed name %s for base_load or data_load", name)
             return False
+
         if not os.path.exists(full_path):
             loader_params = LoaderParams(self.engine, self.market, self.board, secid)
             loader_obj = loader(loader_params)
@@ -110,27 +63,28 @@ class Loader:
         return True
 
     def load_base(self) -> bool:
-        if not self._call_data_loader(SecuritiesListLoader, "securities", ""):
+        if not self._call_data_loader(SecuritiesListLoader, SECURITIES):
             return False
 
-        if not self._call_data_loader(MarketdataLoader, "marketdata", ""):
+        if not self._call_data_loader(MarketdataLoader, MARKETDATA):
             return False
 
         return True
 
-    def _data_preprocess(self, secid) -> bool:
-        file_path_out = self.get_data_file_path("dividends_processed", secid)
+    def _data_preprocess(self, secid : str) -> bool:
+        file_path_out = self.fstruct.data_file_path(DIVIDENDS_PROCESSED, secid)
         if file_path_out == "":
-            logging.error("Loader: failed name %s for data process", "dividends_processed")
+            logging.error("Loader: failed name %s for data process", DIVIDENDS_PROCESSED)
             return False
+
         if os.path.exists(file_path_out):
             return True
 
-        file_path = self.get_data_file_path("dividends", secid)
+        file_path = self.fstruct.data_file_path(DIVIDENDS, secid)
         divs = pd.read_csv(file_path, sep=";", parse_dates=["registryclosedate"], infer_datetime_format=True)
         divs = divs.sort_values(by="registryclosedate", ascending=True)
 
-        file_path = self.get_data_file_path("trade_history", secid)
+        file_path = self.fstruct.data_file_path(TRADE_HISTORY, secid)
         hist = pd.read_csv(file_path, sep=";", parse_dates=["TRADEDATE"], infer_datetime_format=True)
         hist["t2date"] = hist["TRADEDATE"].shift(-2, fill_value=pd.Timestamp(2099, 1, 1))
         hist = hist.sort_values(by="TRADEDATE", ascending=True)
@@ -148,14 +102,12 @@ class Loader:
 
     def load_data(self, securities_list) -> bool:
         for secid in securities_list:
-            security_dir = os.path.join(self.data_dir, secid)
-            if not os.path.exists(security_dir):
-                os.mkdir(security_dir)
+            self.fstruct.make_secid_dir(secid)
 
-            if not self._call_data_loader(DividendsLoader, "dividends", secid):
+            if not self._call_data_loader(DividendsLoader, DIVIDENDS, secid):
                 return False
 
-            if not self._call_data_loader(TradeHistory, "trade_history", secid):
+            if not self._call_data_loader(TradeHistory, TRADE_HISTORY, secid):
                 return False
 
             if not self._data_preprocess(secid):

@@ -1,11 +1,9 @@
 import os
 import logging
 import pandas as pd
+from storage import FStruct, MARKETDATA
 from msk_api.load import Loader
 
-
-def root():
-    return os.path.dirname(os.path.abspath(__file__))
 
 def run():
     logging.basicConfig(level=logging.INFO, format='%(name)s:[%(levelname)s]: %(message)s')
@@ -13,7 +11,9 @@ def run():
     engine = "stock"
     market = "shares"
     board = "TQBR"
-    loader = Loader(engine, market, board, root())
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    fstruct = FStruct(root_dir)
+    loader = Loader(engine, market, board, fstruct)
     if not loader.load_meta():
         logging.error("Meta load finished with error")
         return
@@ -22,7 +22,7 @@ def run():
         logging.error("Base load finished with error")
         return
 
-    top = pd.read_csv(loader.get_base_file_path("marketdata"), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(50)["SECID"]
+    top = pd.read_csv(fstruct.data_file_path(MARKETDATA), sep=";").sort_values("VALTODAY_RUR", ascending = False).head(5)["SECID"]
     if not loader.load_data([name for name in top]):
         logging.error("Data load finished with error")
         return
