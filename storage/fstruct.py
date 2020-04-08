@@ -1,5 +1,4 @@
 import os
-import logging
 from storage import SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
 
 
@@ -29,8 +28,7 @@ class FStruct:
         elif name_id == MARKETDATA:
             file_name = "moex_marketdata_column.json"
         else:
-            logging.error("not found name id %s for find meta path", name_id)
-            return None
+            raise Exception("not found name id {} for find meta path".format(name_id))
 
         return os.path.join(self.meta_dir, file_name)
 
@@ -44,8 +42,7 @@ class FStruct:
         elif name_id == MARKETDATA:
             file_name = "moex_marketdata_data.csv"
         else:
-            logging.error("not found name id %s for find data path", name_id)
-            return None
+            raise Exception("not found name id {} for find data path".format(name_id))
 
         return os.path.join(self.data_dir, file_name)
 
@@ -58,7 +55,6 @@ class FStruct:
         elif name_id == TRADE_HISTORY:
             file_name = "moex_trade_history_data.csv"
         else:
-            logging.error("not found name id %s for find data path (sec id = %s)", name_id, sec_id)
-            return None
+            raise Exception("not found name id {} for find data path (sec id = {})".format(name_id, sec_id))
 
         return os.path.join(self.data_dir, sec_id, file_name)

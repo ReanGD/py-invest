@@ -7,51 +7,41 @@ class BaseDataLoader:
         self.class_name = class_name
         self.header = ""
         self.data = []
-        self.is_finish = False
 
     def _load_data_page(self, url, params, header_name) -> bool:
         r = requests.get(url, params=params)
         if r.status_code != 200:
-            logging.error("%s: failed load page: %s, status code = %d, reason: %s", self.class_name, r.url, r.status_code, r.reason)
-            return False
+            raise Exception("{}: failed load page: {}, status code = {}, reason: {}".format(self.class_name, r.url, r.status_code, r.reason))
 
         lines = r.text.splitlines()
 
         if lines[0] != header_name:
-            logging.error("%s: failed parse page: %s, reason: header (%s) is wrong", self.class_name, r.url, lines[0])
-            return False
+            raise Exception("{}: failed parse page: {}, reason: header ({}) is wrong".format(self.class_name, r.url, lines[0]))
 
         if lines[1] != "":
-            logging.error("%s: failed parse page: %s, reason: second line (%s) not empty", self.class_name, r.url, lines[1])
-            return False
+            raise Exception("{}: failed parse page: {}, reason: second line ({}) not empty".format(self.class_name, r.url, lines[1]))
 
         if self.header == "":
             self.header = lines[2]
 
         if lines[3] == "":
-            self.is_finish = True
             return True
 
         for line in lines[3:]:
             if line != "":
                 self.data.append(line)
 
-        return True
+        return False
 
-    def save_data(self, save_path) -> bool:
+    def _save_data(self, save_path):
         with open(save_path, "w") as f:
             f.write(self.header + "\n")
             f.writelines("%s\n" % line for line in self.data)
 
-        return True
-
-    def _load_meta(self, url, params, save_path) -> bool:
+    def _load_meta(self, url, params, save_path):
         r = requests.get(url, params=params)
         if r.status_code != 200:
-            logging.error("%s: failed load page: %s, status code = %d, reason: %s", self.class_name, r.url, r.status_code, r.reason)
-            return False
+            raise Exception("{}: failed load page: {}, status code = {}, reason: {}".format(self.class_name, r.url, r.status_code, r.reason))
 
         with open(save_path, "w") as f:
             f.write(r.text)
-
-        return True
