@@ -8,7 +8,7 @@ class BaseDataLoader:
         self.header = ""
         self.data = []
 
-    def _load_data_page(self, url, params, header_name) -> bool:
+    def _load_moex_csv(self, url, params, header_name) -> bool:
         r = requests.get(url, params=params)
         if r.status_code != 200:
             raise Exception("{}: failed load page: {}, status code = {}, reason: {}".format(self.class_name, r.url, r.status_code, r.reason))
@@ -33,15 +33,19 @@ class BaseDataLoader:
 
         return False
 
-    def _save_data(self, save_path):
+    def _save_csv(self, save_path):
         with open(save_path, "w") as f:
             f.write(self.header + "\n")
             f.writelines("%s\n" % line for line in self.data)
 
-    def _load_meta(self, url, params, save_path):
+    def _load_url(self, url, params) -> str:
         r = requests.get(url, params=params)
         if r.status_code != 200:
             raise Exception("{}: failed load page: {}, status code = {}, reason: {}".format(self.class_name, r.url, r.status_code, r.reason))
 
+        return r.text
+
+    def _load_and_save_url(self, url, params, save_path):
+        text = self._load_url(url, params)
         with open(save_path, "w") as f:
-            f.write(r.text)
+            f.write(text)

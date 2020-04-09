@@ -1,5 +1,5 @@
 import os
-from storage import SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
+from storage import INFLATION, SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
 
 
 class FStruct:
@@ -42,7 +42,9 @@ class FStruct:
             return self._data_file_path_by_sec_id(name_id, sec_id)
 
         file_name = ""
-        if name_id == SECURITIES:
+        if name_id == INFLATION:
+            file_name = "statbureau_inflation_data.csv"
+        elif name_id == SECURITIES:
             file_name = "moex_securities_data.csv"
         elif name_id == MARKETDATA:
             file_name = "moex_marketdata_data.csv"

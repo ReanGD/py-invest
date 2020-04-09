@@ -2,6 +2,7 @@ import os
 import logging
 import pandas as pd
 from storage import FStruct, FStorage, DIVIDENDS, TRADE_HISTORY, DIVIDENDS_PROCESSED
+from website_api.statbureau import InflationLoader
 from website_api.moex_loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader, DividendsLoader, TradeHistory
 
 # https://iss.moex.com/iss/engines
@@ -45,6 +46,10 @@ class Loader:
             loader_obj.load_data(full_path)
 
     def load_base(self):
+        full_path = self.fstruct.data_file_path(InflationLoader.name_id)
+        if not os.path.exists(full_path):
+            InflationLoader().load_data(full_path)
+
         self._call_data_loader(SecuritiesListLoader)
         self._call_data_loader(MarketdataLoader)
         logging.info("Finish loading base")

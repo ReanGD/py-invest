@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from storage import FStruct, SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
+from storage import FStruct, INFLATION, SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA, DIVIDENDS_PROCESSED
 
 
 class FStorage:
@@ -15,7 +15,9 @@ class FStorage:
         if not os.path.exists(file_path):
             raise Exception("not found file for load name id {}".format(name_id))
 
-        if name_id == SECURITIES:
+        if name_id == INFLATION:
+            return pd.read_csv(file_path, sep=";", parse_dates=["month"], infer_datetime_format=True, index_col=index_col)
+        elif name_id == SECURITIES:
             return pd.read_csv(file_path, sep=";", index_col=index_col)
         elif name_id == MARKETDATA:
             return pd.read_csv(file_path, sep=";", parse_dates=["UPDATETIME"], infer_datetime_format=True, index_col=index_col)

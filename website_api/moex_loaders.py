@@ -29,17 +29,17 @@ class SecuritiesListLoader(BaseDataLoader):
                 "limit": count,
             }
             start += count
-            if self._load_data_page("http://iss.moex.com/iss/securities.csv", url_params, "securities"):
+            if self._load_moex_csv("http://iss.moex.com/iss/securities.csv", url_params, "securities"):
                 break
 
-        self._save_data(save_path)
+        self._save_csv(save_path)
 
     def load_meta(self, save_path):
         # example: http://iss.moex.com/iss/securities/column.json?iss.only=boards
         url_params = {
             "iss.only": "boards",
         }
-        self._load_meta("http://iss.moex.com/iss/securities/column.json", url_params, save_path)
+        self._load_and_save_url("http://iss.moex.com/iss/securities/column.json", url_params, save_path)
 
 
 class MarketdataLoader(BaseDataLoader):
@@ -57,8 +57,8 @@ class MarketdataLoader(BaseDataLoader):
         }
         url = "http://iss.moex.com/iss/engines/{}/markets/{}/boards/{}/securities.csv"
         url = url.format(self.params.engine, self.params.market, self.params.board)
-        self._load_data_page(url, url_params, "marketdata")
-        self._save_data(save_path)
+        self._load_moex_csv(url, url_params, "marketdata")
+        self._save_csv(save_path)
 
     def load_meta(self, save_path):
         # example: http://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/columns?iss.only=marketdata
@@ -67,7 +67,7 @@ class MarketdataLoader(BaseDataLoader):
         }
         url = "http://iss.moex.com/iss/engines/{}/markets/{}/boards/{}/securities/columns.json"
         url = url.format(self.params.engine, self.params.market, self.params.board)
-        self._load_meta(url, url_params, save_path)
+        self._load_and_save_url(url, url_params, save_path)
 
 
 class DividendsLoader(BaseDataLoader):
@@ -81,15 +81,15 @@ class DividendsLoader(BaseDataLoader):
         # example: http://iss.moex.com/iss/securities/ROSN/dividends.json
         url_params = {}
         url = "http://iss.moex.com/iss/securities/{}/dividends.csv".format(self.params.sec_id)
-        self._load_data_page(url, url_params, "dividends")
-        self._save_data(save_path)
+        self._load_moex_csv(url, url_params, "dividends")
+        self._save_csv(save_path)
 
     def load_meta(self, save_path):
         # example: http://iss.moex.com/iss/securities/TATN/dividends.json?iss.data=off
         url_params = {
             "iss.data": "off",
         }
-        self._load_meta("http://iss.moex.com/iss/securities/TATN/dividends.json", url_params, save_path)
+        self._load_and_save_url("http://iss.moex.com/iss/securities/TATN/dividends.json", url_params, save_path)
 
 
 class TradeHistory(BaseDataLoader):
@@ -113,11 +113,11 @@ class TradeHistory(BaseDataLoader):
                 "start": start,
                 "limit": count,
             }
-            if self._load_data_page(url, url_params, "history"):
+            if self._load_moex_csv(url, url_params, "history"):
                 break
             start += count
 
-        self._save_data(save_path)
+        self._save_csv(save_path)
 
     def load_meta(self, save_path):
         # doc: https://iss.moex.com/iss/reference/101
@@ -127,4 +127,4 @@ class TradeHistory(BaseDataLoader):
         }
         url = "http://iss.moex.com/iss/history/engines/{}/markets/{}/boards/{}/securities/columns.json"
         url = url.format(self.params.engine, self.params.market, self.params.board)
-        self._load_meta(url, url_params, save_path)
+        self._load_and_save_url(url, url_params, save_path)

@@ -1,3 +1,4 @@
+INFLATION = "inflation"
 SECURITIES = "securities"
 DIVIDENDS = "dividends"
 TRADE_HISTORY = "trade_history"
@@ -8,6 +9,7 @@ from storage.fstruct import FStruct
 from storage.fstorage import FStorage
 
 __all__ = [
+    "INFLATION",
     "SECURITIES",
     "DIVIDENDS",
     "TRADE_HISTORY",
