@@ -72,7 +72,7 @@ class Loader:
         divs_full = divs_full[column_names].rename(columns={"TRADEDATE": "t2date", "LEGALCLOSEPRICE": "close_price"})
         divs_full.to_csv(file_path_out, sep=";", encoding="utf-8")
 
-    def load_data(self, securities_list):
+    def load_data(self, securities_list : list):
         for sec_id in securities_list:
             self.fstruct.make_sec_dir(sec_id)
             self._call_data_loader(DividendsLoader, sec_id)
