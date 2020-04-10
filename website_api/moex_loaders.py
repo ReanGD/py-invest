@@ -1,4 +1,4 @@
-from msk_api.base_data_loader import BaseDataLoader
+from website_api.base_data_loader import BaseDataLoader
 from storage import SECURITIES, DIVIDENDS, TRADE_HISTORY, MARKETDATA
 
 

@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 from storage import FStruct, FStorage, DIVIDENDS, TRADE_HISTORY, DIVIDENDS_PROCESSED
-from msk_api.loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader, DividendsLoader, TradeHistory
+from website_api.moex_loaders import LoaderParams, SecuritiesListLoader, MarketdataLoader, DividendsLoader, TradeHistory
 
 # https://iss.moex.com/iss/engines
 # engine = "stock"

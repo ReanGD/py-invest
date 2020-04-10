@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 from storage import FStruct, FStorage, MARKETDATA
-from msk_api.load import Loader
+from website_api.load import Loader
 
 
 def load():
