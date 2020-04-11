@@ -39,3 +39,8 @@ class Inflation:
     # include start and final dates
     def get_year_inflation_date(self, start_date : pd.Timestamp, final_date : pd.Timestamp) -> float:
         return self.get_year_inflation(start_date.year, start_date.month, final_date.year, final_date.month)
+
+    # include start and final dates
+    def get_rate_without_inflation(self, rate : float, start_date : pd.Timestamp, final_date : pd.Timestamp) -> float:
+        inflation_rate = self.get_year_inflation(start_date.year, start_date.month, final_date.year, final_date.month)
+        return ( (rate / 100.0 + 1.0) / (inflation_rate / 100.0 + 1.0) - 1.0)*100.0
