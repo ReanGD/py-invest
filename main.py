@@ -17,7 +17,7 @@ def load():
     loader.load_meta()
     loader.load_base()
 
-    top = fstorage.open_data(MARKETDATA).sort_values("VALTODAY_RUR", ascending = False).head(20)["SECID"]
+    top = fstorage.open_data(MARKETDATA).sort_values("VALTODAY_RUR", ascending = False).head(50)["SECID"]
     loader.load_data([name for name in top])
 
 def run():

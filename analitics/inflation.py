@@ -17,11 +17,14 @@ class Inflation:
         self._data = FStorage(root_dir).open_data(INFLATION, index_col="month").sort_index(ascending=True)
 
     # include start and final dates
-    @lru_cache(maxsize=1)
+    @lru_cache
     def get_inflation(self, start_year : int, start_month : int, final_year : int, final_month : int) -> float:
         func = InflationLambda()
         start_date = pd.Timestamp(start_year, start_month, 1)
         final_date = pd.Timestamp(final_year, final_month, 1)
+        if start_date > final_date:
+            raise Exception("Inflation: wrong params: start_date ({}) > final_date({})".format(start_date, final_date))
+
         return self._data.loc[(self._data.index >= start_date) & (self._data.index <= final_date), "value"].apply(func).tail(1).values[0]
 
     # include start and final dates
@@ -29,7 +32,7 @@ class Inflation:
         return self.get_inflation(start_date.year, start_date.month, final_date.year, final_date.month)
 
     # include start and final dates
-    @lru_cache(maxsize=1)
+    @lru_cache
     def get_year_inflation(self, start_year : int, start_month : int, final_year : int, final_month : int) -> float:
         value = self.get_inflation(start_year, start_month, final_year, final_month)
         final_date = pd.Timestamp(final_year, final_month, 1)
@@ -43,4 +46,4 @@ class Inflation:
     # include start and final dates
     def get_rate_without_inflation(self, rate : float, start_date : pd.Timestamp, final_date : pd.Timestamp) -> float:
         inflation_rate = self.get_year_inflation(start_date.year, start_date.month, final_date.year, final_date.month)
-        return ( (rate / 100.0 + 1.0) / (inflation_rate / 100.0 + 1.0) - 1.0)*100.0
+        return ((rate / 100.0 + 1.0) / (inflation_rate / 100.0 + 1.0) - 1.0)*100.0

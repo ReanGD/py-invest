@@ -10,6 +10,9 @@ class Profit:
 
     # return tax + broker commission
     def costs(self, buy_date : pd.Timestamp, buy_price : float, sale_date : pd.Timestamp, sale_price : float, dividends : float) -> float:
+        if buy_date > sale_price:
+            raise Exception("Profit: wrong params: buy_date ({}) > sale_date({})".format(buy_date, sale_date))
+
         commission_value = (buy_price + sale_price) * self._broker_commission
         sale_revenue = sale_price - buy_price - commission_value
         tax_base = dividends if (sale_revenue <= 0.0) or (buy_date + pd.DateOffset(years=3) < sale_date) else sale_revenue + dividends
@@ -20,14 +23,16 @@ class Profit:
     # not adjusted for inflation
     # return: percent per year
     def nominal_rate(self, buy_date : pd.Timestamp, buy_price : float, sale_date : pd.Timestamp, sale_price : float, dividends : float) -> float:
-        return (dividends + sale_price - buy_price) * 365.25 * 100.0 / (buy_price * (sale_date - buy_date).days)
+        if buy_date > sale_price:
+            raise Exception("Profit: wrong params: buy_date ({}) > sale_date({})".format(buy_date, sale_date))
+        return (dividends + sale_price - buy_price) * 365.25 * 100.0 / (buy_price * max((sale_date - buy_date).days, 1))
 
     # include: dividends, tax, broker commission
     # not adjusted for inflation
     # return: percent per year
     def effective_rate(self, buy_date : pd.Timestamp, buy_price : float, sale_date : pd.Timestamp, sale_price : float, dividends : float) -> float:
         costs = self.costs(buy_date, buy_price, sale_date, sale_price, dividends)
-        return (dividends + sale_price - buy_price - costs) * 365.25 * 100.0 / (buy_price * (sale_date - buy_date).days)
+        return (dividends + sale_price - buy_price - costs) * 365.25 * 100.0 / (buy_price * max((sale_date - buy_date).days, 1))
 
     # include: dividends, tax, broker commission
     # return: percent per year (above inflation)
